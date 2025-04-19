@@ -4,7 +4,6 @@ import (
 	"authService/internal/models"
 	"authService/internal/repository"
 	"errors"
-
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -17,51 +16,73 @@ type AuthService struct {
 }
 
 func NewAuthService(userRepo *repository.UserRepository, jwtKey string) *AuthService {
-	return &AuthService{userRepo, []byte(jwtKey)}
+	return &AuthService{userRepo: userRepo, jwtKey: []byte(jwtKey)}
 }
 
+// Register registers a new user with default RoleID = 1
 func (uc *AuthService) Register(username, password string) (string, error) {
+	// Хэширование пароля
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return "", errors.New("failed to hash password")
 	}
 
 	user := &models.User{
 		Username: username,
 		Password: string(hashedPassword),
+		RoleID:   1,
 	}
 	err = uc.userRepo.CreateUser(user)
 	if err != nil {
-		return "", err
+		return "", errors.New("failed to create user")
 	}
 
-	token := generateJwtToken(user)
+	// Генерация JWT-токена
+	token, err := generateJwtToken(user, uc.jwtKey)
+	if err != nil {
+		return "", errors.New("failed to generate token")
+	}
 
-	return token.SignedString(uc.jwtKey)
+	return token, nil
 }
 
+// Login authenticates a user and returns a JWT token
 func (uc *AuthService) Login(username, password string) (string, error) {
+	// Поиск пользователя по имени
 	user, err := uc.userRepo.GetUserByUsername(username)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
 
+	// Проверка пароля
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return "", errors.New("invalid credentials")
 	}
 
-	token := generateJwtToken(user)
+	// Генерация JWT-токена
+	token, err := generateJwtToken(user, uc.jwtKey)
+	if err != nil {
+		return "", errors.New("failed to generate token")
+	}
 
-	return token.SignedString(uc.jwtKey)
+	return token, nil
 }
 
-func generateJwtToken(user *models.User) *jwt.Token {
+// generateJwtToken generates a JWT token for the given user
+func generateJwtToken(user *models.User, jwtKey []byte) (string, error) {
+	// Создание токена с данными пользователя
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":     user.ID,
-		"username":    user.Username,
-		"user_role":   user.Role,
-		"user_active": user.Active,
-		"exp":         time.Now().Add(time.Hour * 24).Unix(),
+		"user_id":   user.ID,
+		"username":  user.Username,
+		"user_role": user.Role.Name,                        // Статическое значение роли
+		"exp":       time.Now().Add(time.Hour * 24).Unix(), // Токен действителен 24 часа
 	})
-	return token
+
+	// Подписание токена
+	signedToken, err := token.SignedString(jwtKey)
+	if err != nil {
+		return "", errors.New("failed to sign token")
+	}
+
+	return signedToken, nil
 }
