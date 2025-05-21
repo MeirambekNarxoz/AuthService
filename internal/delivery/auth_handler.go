@@ -35,20 +35,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	if _, err := h.authService.Register(req.Username, req.Password); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Could not create user"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 
-// Login
-// @Summary Login a user
-// @Description Authenticates a user and returns a JWT token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Router /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req struct {
 		Username string `json:"username"`

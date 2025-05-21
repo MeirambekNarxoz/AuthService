@@ -19,18 +19,21 @@ func NewAuthService(userRepo *repository.UserRepository, jwtKey string) *AuthSer
 	return &AuthService{userRepo: userRepo, jwtKey: []byte(jwtKey)}
 }
 
-// Register registers a new user with default RoleID = 1
+// Register registers a new user
 func (uc *AuthService) Register(username, password string) (string, error) {
 	// Хэширование пароля
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", errors.New("failed to hash password")
 	}
+	if username == "" {
+		return "", errors.New("username cannot be empty")
+	}
 
 	user := &models.User{
 		Username: username,
 		Password: string(hashedPassword),
-		RoleID:   1,
+		Role:     models.RoleUser,
 	}
 	err = uc.userRepo.CreateUser(user)
 	if err != nil {
@@ -74,7 +77,7 @@ func generateJwtToken(user *models.User, jwtKey []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":   user.ID,
 		"username":  user.Username,
-		"user_role": user.Role.Name,                        // Статическое значение роли
+		"user_role": user.Role,                             // Статическое значение роли
 		"exp":       time.Now().Add(time.Hour * 24).Unix(), // Токен действителен 24 часа
 	})
 

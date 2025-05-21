@@ -25,7 +25,7 @@ func main() {
 		logger.Error("Ошибка подключения к базе данных:", err)
 	}
 
-	db.AutoMigrate(&models.User{}, &models.Role{})
+	db.AutoMigrate(&models.User{})
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())

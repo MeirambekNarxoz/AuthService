@@ -18,12 +18,12 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 }
 
 func (r *UserRepository) LoadUserRole(user *models.User) error {
-	return r.db.Preload("Role").First(user, user.ID).Error
+	return r.db.First(user, user.ID).Error
 }
 
 func (r *UserRepository) GetUserByUsername(username string) (*models.User, error) {
 	var user models.User
-	err := r.db.Preload("Role").Where("username = ?", username).First(&user).Error
+	err := r.db.Where("username = ?", username).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

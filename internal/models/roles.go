@@ -1,8 +1,7 @@
 package models
 
-import "gorm.io/gorm"
-
-type Role struct {
-	gorm.Model
-	Name string `gorm:"not null" json:"name"`
-}
+const (
+	RoleUser      = "USER"
+	RoleModerator = "MODERATOR"
+	RoleAdmin     = "ADMIN"
+)
